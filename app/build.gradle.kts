@@ -13,6 +13,7 @@ repositories {
     maven(url = "https://maven.pkg.jetbrains.space/kotlin/p/kotlin/kotlin-ide-plugin-dependencies")
     maven(url = "https://www.jetbrains.com/intellij-repository/releases")
     maven(url = "https://cache-redirector.jetbrains.com/intellij-third-party-dependencies")
+    maven(url = "https://repo.gradle.org/gradle/libs-releases")
 }
 
 dependencies {
@@ -35,6 +36,7 @@ dependencies {
     }
 
     implementation("org.eclipse.lsp4j:org.eclipse.lsp4j:0.24.0")
+    implementation("org.gradle:gradle-tooling-api:8.12")
 }
 
 java {

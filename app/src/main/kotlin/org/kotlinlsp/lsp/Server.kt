@@ -32,6 +32,7 @@ class MyLanguageServer: LanguageServer, TextDocumentService, WorkspaceService, L
         info(rootPath)
 
         analysisSession = AnalysisSession(
+            rootPath = rootPath,
             onDiagnostics = {
                 client.publishDiagnostics(it)
             }

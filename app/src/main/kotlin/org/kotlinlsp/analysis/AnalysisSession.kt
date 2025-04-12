@@ -68,7 +68,10 @@ import org.kotlinlsp.trace
 import kotlin.reflect.full.primaryConstructor
 
 @OptIn(KaExperimentalApi::class)
-class AnalysisSession(private val onDiagnostics: (params: PublishDiagnosticsParams) -> Unit) {
+class AnalysisSession(
+    val rootPath: String,
+    private val onDiagnostics: (params: PublishDiagnosticsParams) -> Unit
+) {
     private val app: MockApplication
     private val project: MockProject
     private val commandProcessor: CommandProcessor
@@ -155,7 +158,7 @@ class AnalysisSession(private val onDiagnostics: (params: PublishDiagnosticsPara
         val javaFileManager = project.getService(JavaFileManager::class.java) as KotlinCliJavaFileManagerImpl
         val packagePartsScope = ProjectScope.getLibrariesScope(project)
         val libraryRoots = mutableListOf<JavaRoot>()
-        val rootModule = getModuleList(project, appEnvironment)
+        val rootModule = getModuleList(project, appEnvironment, rootPath)
         fetchLibraryRoots(rootModule, libraryRoots)
 
         val packagePartProvider = JvmPackagePartProvider(latestLanguageVersionSettings, packagePartsScope).apply {
@@ -172,7 +175,7 @@ class AnalysisSession(private val onDiagnostics: (params: PublishDiagnosticsPara
         val fileFinderFactory = CliVirtualFileFinderFactory(rootsIndex, false, perfManager = null)
         project.registerService(VirtualFileFinderFactory::class.java, fileFinderFactory)
 
-        (project.getService(KotlinProjectStructureProvider::class.java) as ProjectStructureProvider).setup(project, appEnvironment)
+        (project.getService(KotlinProjectStructureProvider::class.java) as ProjectStructureProvider).setup(project, appEnvironment, rootPath)
         (project.getService(KotlinPackageProviderFactory::class.java) as PackageProviderFactory).setup(project)
         (project.getService(KotlinDeclarationProviderFactory::class.java) as DeclarationProviderFactory).setup(project)
 

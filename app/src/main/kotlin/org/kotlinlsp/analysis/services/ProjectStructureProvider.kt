@@ -15,14 +15,16 @@ import org.kotlinlsp.trace
 class ProjectStructureProvider: KotlinProjectStructureProviderBase() {
     private lateinit var mockProject: MockProject
     private lateinit var appEnvironment: KotlinCoreApplicationEnvironment
+    private lateinit var rootPath: String
 
-    fun setup(project: MockProject, applicationEnvironment: KotlinCoreApplicationEnvironment) {
+    fun setup(project: MockProject, applicationEnvironment: KotlinCoreApplicationEnvironment, rootPath: String) {
         this.mockProject = project
         this.appEnvironment = applicationEnvironment
+        this.rootPath = rootPath
     }
 
     private val rootModule: KaModule by lazy {
-        getModuleList(mockProject, appEnvironment)
+        getModuleList(mockProject, appEnvironment, rootPath)
     }
 
     override fun getImplementingModules(module: KaModule): List<KaModule> {

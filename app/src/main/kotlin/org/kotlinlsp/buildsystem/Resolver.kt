@@ -13,7 +13,7 @@ class BuildSystemResolver(
 ) {
     private val BUILD_SYSTEMS: List<BuildSystem> = listOf(
         FileBasedBuildSystem(project, appEnvironment, rootFolder),
-        GradleBuildSystem()
+        GradleBuildSystem(project, appEnvironment, rootFolder)
     )
 
     fun resolveModuleDAG(): KaModule = profile("BuildSystemResolver", "") {

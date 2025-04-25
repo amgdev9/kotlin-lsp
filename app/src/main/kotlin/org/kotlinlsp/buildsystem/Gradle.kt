@@ -14,7 +14,6 @@ import org.kotlinlsp.analysis.services.modules.LibraryModule
 import org.kotlinlsp.analysis.services.modules.SourceModule
 import org.kotlinlsp.common.debug
 import java.io.File
-import java.nio.file.Path
 
 class GradleBuildSystem(
     private val project: MockProject,
@@ -39,11 +38,11 @@ class GradleBuildSystem(
         val ideaProject = model.get()
 
         val jvmTarget = checkNotNull(JvmTarget.fromString(ideaProject.jdkName)) { "Unknown jdk target" }
-        val jdkModule = getJdkHomePathFromSystemProperty()?.let { jdkHome ->
+        val jdkModule = ideaProject.javaLanguageSettings?.jdk?.let { jdk ->
             LibraryModule(
                 appEnvironment = appEnvironment,
                 mockProject = project,
-                roots = listOf(jdkHome),
+                roots = listOf(jdk.javaHome.toPath()),
                 javaVersion = jvmTarget,
                 isJdk = true,
                 name = "JDK ${jvmTarget.description}"
@@ -83,12 +82,4 @@ class GradleBuildSystem(
         val rootModule = modules.last()
         return rootModule to ""
     }
-}
-
-private fun getJdkHomePathFromSystemProperty(): Path? {
-    val javaHome = File(System.getProperty("java.home"))
-    if (!javaHome.exists()) {
-        return null
-    }
-    return javaHome.toPath()
 }

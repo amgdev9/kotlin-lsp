@@ -22,7 +22,10 @@ class GradleBuildSystem(
     private val appEnvironment: KotlinCoreApplicationEnvironment,
     private val rootFolder: String
 ) : BuildSystem {
-    override val markerFiles: List<String> = listOf("$rootFolder/build.gradle", "$rootFolder/build.gradle.kts")
+    override val markerFiles: List<String> = listOf(
+        "$rootFolder/build.gradle", "$rootFolder/build.gradle.kts",
+        "$rootFolder/settings.gradle", "$rootFolder/settings.gradle.kts",
+    )
 
     @OptIn(KaImplementationDetail::class)
     override fun resolveRootModuleIfNeeded(cachedVersion: String?): Pair<KaModule, String>? {

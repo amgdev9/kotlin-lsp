@@ -15,7 +15,6 @@ import org.kotlinlsp.analysis.services.modules.SourceModule
 import org.kotlinlsp.common.debug
 import java.io.File
 import java.nio.file.Path
-import kotlin.io.path.Path
 
 class GradleBuildSystem(
     private val project: MockProject,
@@ -51,15 +50,6 @@ class GradleBuildSystem(
             )
         }
 
-        val kotlinStdlib = LibraryModule(
-            appEnvironment = appEnvironment,
-            mockProject = project,
-            name = "Kotlin stdlib",
-            javaVersion = jvmTarget,
-            roots = listOf(getKotlinJvmStdlibJarPath()),
-        )
-
-
         val modules = ideaProject.modules.map { module ->
             val dependencies = module
                 .dependencies
@@ -74,12 +64,10 @@ class GradleBuildSystem(
                     )
                 }
 
-
-            val allDependencies = mutableListOf<KaModule>(kotlinStdlib)
+            val allDependencies: MutableList<KaModule> = dependencies.toMutableList()
             if (jdkModule != null) {
                 allDependencies.add(jdkModule)
             }
-            allDependencies.addAll(dependencies)
 
             SourceModule(
                 mockProject = project,
@@ -103,16 +91,4 @@ private fun getJdkHomePathFromSystemProperty(): Path? {
         return null
     }
     return javaHome.toPath()
-}
-
-internal fun getKotlinJvmStdlibJarPath(): Path {
-    return Path(lazyKotlinJvmStdlibJar)
-}
-
-private val lazyKotlinJvmStdlibJar by lazy {
-    ClassLoader.getSystemResource("kotlin/jvm/Strictfp.class")
-        ?.file
-        ?.replace("file:", "")
-        ?.replaceAfter(".jar", "")
-        ?: error("Unable to find Kotlin's JVM stdlib jar.")
 }

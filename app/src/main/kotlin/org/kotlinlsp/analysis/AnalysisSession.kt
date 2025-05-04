@@ -299,7 +299,7 @@ class AnalysisSession(private val notifier: AnalysisSessionNotifier, rootPath: S
     fun lintFile(path: String) {
         val ktFile = openedFiles[path]!!
         index.queueOnFileChanged(ktFile)
-        updateDiagnostics(ktFile)
+        for (openedKtFile in openedFiles.values) updateDiagnostics(openedKtFile)
     }
 
     fun dispose() {

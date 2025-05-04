@@ -4,7 +4,6 @@ import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.jsonrpc.messages.Either
 import org.eclipse.lsp4j.services.*
 import org.jetbrains.kotlin.util.capitalizeDecapitalize.toLowerCaseAsciiOnly
-import org.kotlinlsp.actions.Language
 import org.kotlinlsp.analysis.AnalysisSession
 import org.kotlinlsp.analysis.AnalysisSessionNotifier
 import org.kotlinlsp.common.getLspVersion
@@ -125,10 +124,10 @@ class KotlinLanguageServer(
 
     override fun hover(params: HoverParams): CompletableFuture<Hover?> {
         // TODO Add javadoc
-        val (text, range, language) = analysisSession.hover(params.textDocument.uri, params.position) ?: return completedFuture(null)
+        val (text, range) = analysisSession.hover(params.textDocument.uri, params.position) ?: return completedFuture(null)
         val content = MarkupContent().apply {
             kind = "markdown"
-            value = "```${language.toString().toLowerCaseAsciiOnly()}\n${text}\n```"
+            value = "```kotlin\n${text}\n```"
         }
 
         val hover = Hover().apply {

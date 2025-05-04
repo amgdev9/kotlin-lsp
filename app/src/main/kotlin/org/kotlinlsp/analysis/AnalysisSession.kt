@@ -40,7 +40,6 @@ import org.jetbrains.kotlin.cli.jvm.modules.CoreJrtFileSystem
 import org.jetbrains.kotlin.cli.jvm.modules.JavaModuleGraph
 import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.psi.KtFile
-import org.kotlinlsp.actions.Language
 import org.kotlinlsp.actions.goToDefinitionAction
 import org.kotlinlsp.actions.hoverAction
 import org.kotlinlsp.analysis.registration.Registrar
@@ -307,7 +306,7 @@ class AnalysisSession(private val notifier: AnalysisSessionNotifier, rootPath: S
         index.close()
     }
 
-    fun hover(path: String, position: Position): Triple<String, Range, Language>? {
+    fun hover(path: String, position: Position): Pair<String, Range>? {
         val ktFile = openedFiles[path]!!
         return project.read { hoverAction(ktFile, position) }
     }

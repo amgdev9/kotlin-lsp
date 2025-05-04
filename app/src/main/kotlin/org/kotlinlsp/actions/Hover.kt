@@ -1,12 +1,11 @@
 package org.kotlinlsp.actions
 
+import com.intellij.lang.jvm.JvmClassKind
+import com.intellij.lang.jvm.JvmModifier
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiMethod
 import com.intellij.psi.PsiNamedElement
-import com.intellij.psi.PsiSubstitutor
 import com.intellij.psi.PsiVariable
-import com.intellij.psi.util.PsiFormatUtil
-import com.intellij.psi.util.PsiFormatUtilBase.*
 import com.intellij.psi.util.parentOfType
 import org.eclipse.lsp4j.Position
 import org.eclipse.lsp4j.Range
@@ -19,15 +18,11 @@ import org.jetbrains.kotlin.psi.KtFile
 import org.kotlinlsp.common.getElementRange
 import org.kotlinlsp.common.toOffset
 
-enum class Language {
-    KOTLIN, JAVA
-}
-
 @OptIn(KaExperimentalApi::class)
 private val renderer = KaDeclarationRendererForSource.WITH_SHORT_NAMES
 
 @OptIn(KaExperimentalApi::class)
-fun hoverAction(ktFile: KtFile, position: Position): Triple<String, Range, Language>? {
+fun hoverAction(ktFile: KtFile, position: Position): Pair<String, Range>? {
     val offset = position.toOffset(ktFile)
     val ktElement = ktFile.findElementAt(offset)?.parentOfType<KtElement>() ?: return null
     val range = getElementRange(ktFile, ktElement)
@@ -39,36 +34,67 @@ fun hoverAction(ktFile: KtFile, position: Position): Triple<String, Range, Langu
         val text = analyze(ktDeclaration) {
             ktDeclaration.symbol.render(renderer)
         }
-        return Triple(text, range, Language.KOTLIN)
+        return Pair(text, range)
     }
 
     val javaDeclaration =
         (ktFile.findReferenceAt(offset)?.resolve() as? PsiNamedElement)
             ?: return null
-    val text =
-        when (javaDeclaration) {
-            is PsiMethod ->
-                PsiFormatUtil.formatMethod(
-                    javaDeclaration,
-                    PsiSubstitutor.EMPTY,
-                    SHOW_NAME or SHOW_TYPE or SHOW_PARAMETERS,
-                    SHOW_NAME or SHOW_TYPE,
-                )
+    val text = when (javaDeclaration) {
+        is PsiMethod -> buildString {
+            append("fun ")
 
-            is PsiClass ->
-                PsiFormatUtil.formatClass(
-                    javaDeclaration,
-                    SHOW_NAME or SHOW_TYPE,
-                )
+            javaDeclaration.typeParameters.takeIf { it.isNotEmpty() }?.let {
+                append("<")
+                append(it.joinToString(", ") { it.name.toString() })
+                append("> ")
+            }
 
-            is PsiVariable ->
-                PsiFormatUtil.formatVariable(
-                    javaDeclaration,
-                    SHOW_NAME or SHOW_TYPE,
-                    PsiSubstitutor.EMPTY
-                )
+            append(javaDeclaration.name)
+            append("(")
+            append(javaDeclaration.parameterList.parameters.joinToString(", ") {
+                "${it.name}: ${it.type.presentableText}"
+            })
+            append(")")
 
-            else -> return null
+            javaDeclaration.returnType?.takeIf { it.presentableText != "void" }?.let {
+                append(": ${it.presentableText}")
+            }
         }
-    return Triple(text, range, Language.JAVA)
+
+        is PsiClass -> buildString {
+            when (javaDeclaration.classKind) {
+                JvmClassKind.CLASS -> append("class ")
+                JvmClassKind.INTERFACE -> append("interface ")
+                JvmClassKind.ANNOTATION -> append("annotation class ")
+                JvmClassKind.ENUM -> append("enum class ")
+            }
+            append(javaDeclaration.name)
+
+            javaDeclaration.typeParameters.takeIf { it.isNotEmpty() }?.let {
+                append("<")
+                append(it.joinToString(", ") { it.name.toString() })
+                append(">")
+            }
+
+            javaDeclaration.extendsList?.referencedTypes?.takeIf { it.isNotEmpty() }?.let {
+                append(" : ")
+                append(it.joinToString(", ") { it.presentableText })
+            }
+        }
+
+        is PsiVariable -> buildString {
+            if (javaDeclaration.hasModifier(JvmModifier.FINAL)) {
+                append("val ")
+            } else {
+                append("var ")
+            }
+            append(javaDeclaration.name)
+            append(": ")
+            append(javaDeclaration.type.presentableText)
+        }
+
+        else -> return null
+    }
+    return Pair(text, range)
 }

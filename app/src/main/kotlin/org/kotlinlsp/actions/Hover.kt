@@ -6,52 +6,27 @@ import org.eclipse.lsp4j.Range
 import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.renderer.declarations.impl.KaDeclarationRendererForSource
-import org.jetbrains.kotlin.analysis.api.resolution.successfulConstructorCallOrNull
-import org.jetbrains.kotlin.analysis.api.resolution.successfulFunctionCallOrNull
-import org.jetbrains.kotlin.analysis.api.resolution.successfulVariableAccessCall
-import org.jetbrains.kotlin.analysis.api.resolution.symbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaDeclarationSymbol
+import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.psi.KtDeclaration
 import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.psi.KtFile
-import org.jetbrains.kotlin.psi.KtReferenceExpression
 import org.kotlinlsp.common.getElementRange
 import org.kotlinlsp.common.toOffset
 
 @OptIn(KaExperimentalApi::class)
 private val renderer = KaDeclarationRendererForSource.WITH_SHORT_NAMES
 
-/*
- * TODO Cases which are not working (only from library declarations, from source files these work fine)
- * - Enums
- * - Class properties which are not getters
- * - Static class
- * - Types coming from libraries
- */
 @OptIn(KaExperimentalApi::class)
 fun hoverAction(ktFile: KtFile, position: Position): Pair<String, Range>? {
     val offset = position.toOffset(ktFile)
     val ktElement = ktFile.findElementAt(offset)?.parentOfType<KtElement>() ?: return null
     val range = getElementRange(ktFile, ktElement)
-
-    val text =
-        (ktElement as? KtDeclaration ?: ktFile.findReferenceAt(offset)?.resolve() as? KtDeclaration)?.let {
-            // This branch works for source file declarations
-            analyze(it) {
-                it.symbol.render(renderer)
-            }
-        } ?: ktElement.parentOfType<KtReferenceExpression>()?.let {
-            // This branch works (mostly) for library declarations
-            // TODO Iron out the remaining cases
-            analyze(it) {
-                val call = it.resolveToCall()
-                val successfulCall =
-                    call?.successfulFunctionCallOrNull()
-                        ?: call?.successfulConstructorCallOrNull()
-                        ?: call?.successfulVariableAccessCall()
-                        ?: return null
-                val symbol = successfulCall.symbol
-                symbol.render(renderer)
-            }
-        } ?: return null
+    val text = analyze(ktElement) {
+        val symbol =
+            if (ktElement is KtDeclaration) ktElement.symbol
+            else ktElement.mainReference?.resolveToSymbol() as? KaDeclarationSymbol ?: return null
+        symbol.render(renderer)
+    }
     return Pair(text, range)
 }

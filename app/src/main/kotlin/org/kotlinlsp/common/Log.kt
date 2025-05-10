@@ -10,7 +10,6 @@ import org.kotlinlsp.analysis.modules.SourceModule
 import org.kotlinlsp.analysis.modules.Module
 import java.io.*
 import java.lang.management.ManagementFactory
-import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.logging.Handler
 import java.util.logging.Level
 import java.util.logging.LogRecord
@@ -29,6 +28,17 @@ private enum class LogLevel(level: Int) {
     Off(5)
 }
 
+private fun LogLevel.asMessageType(): MessageType {
+    return when (this) {
+        LogLevel.Trace -> MessageType.Log
+        LogLevel.Debug -> MessageType.Log
+        LogLevel.Info -> MessageType.Info
+        LogLevel.Warning -> MessageType.Warning
+        LogLevel.Error -> MessageType.Error
+        LogLevel.Off -> throw IllegalArgumentException("LogLevel Off cannot be converted to MessageType")
+    }
+}
+
 // Configure as needed
 private val logLevel = LogLevel.Debug
 private const val profileEnabled = true
@@ -40,16 +50,7 @@ private class LSPLogger(val client: LanguageClient) {
     fun log(level: LogLevel, message: String) {
         if (level < logLevel) return
 
-        val type = when (level) {
-            LogLevel.Trace -> MessageType.Log
-            LogLevel.Debug -> MessageType.Log
-            LogLevel.Info -> MessageType.Info
-            LogLevel.Warning -> MessageType.Warning
-            LogLevel.Error -> MessageType.Error
-            LogLevel.Off -> return
-        }
-
-        client.logMessage(MessageParams(type, message))
+        client.logMessage(MessageParams(level.asMessageType(), message))
     }
 
     fun redirectSystemErr() {

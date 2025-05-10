@@ -84,6 +84,10 @@ fun setupLogger() {
 }
 fun setupLoggerClient(client: LanguageClient) {
     logger.client = client
+    logger.messageQueue.forEach {
+        client.logMessage(it)
+    }
+    logger.messageQueue.clear()
 }
 
 fun <T> profile(tag: String, message: String, fn: () -> T): T {

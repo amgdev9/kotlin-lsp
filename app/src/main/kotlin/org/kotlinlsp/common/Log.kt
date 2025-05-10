@@ -36,10 +36,7 @@ private const val profileEnabled = true
 private lateinit var logger: LSPLogger
 private val profileInfo = mutableMapOf<String, Pair<Int, Duration>>()
 
-private class LSPLogger {
-    var client: LanguageClient? = null
-    val messageQueue = ConcurrentLinkedQueue<MessageParams>()
-
+private class LSPLogger(val client: LanguageClient) {
     fun log(level: LogLevel, message: String) {
         if (level < logLevel) return
 
@@ -52,8 +49,7 @@ private class LSPLogger {
             LogLevel.Off -> return
         }
 
-        client?.logMessage(MessageParams(type, message))
-            ?: messageQueue.add(MessageParams(type, message))
+        client.logMessage(MessageParams(type, message))
     }
 
     fun redirectSystemErr() {
@@ -74,20 +70,13 @@ private class LSPLogger {
     }
 }
 
-fun setupLogger() {
-    logger = LSPLogger()
+fun setupLogger(client: LanguageClient) {
+    logger = LSPLogger(client)
 
     // This is to log the exceptions to log.txt file (JUL = java.util.log)
     Logger.getLogger("").addHandler(JULRedirector())
 
     logger.redirectSystemErr()
-}
-fun setupLoggerClient(client: LanguageClient) {
-    logger.client = client
-    logger.messageQueue.forEach {
-        client.logMessage(it)
-    }
-    logger.messageQueue.clear()
 }
 
 fun <T> profile(tag: String, message: String, fn: () -> T): T {

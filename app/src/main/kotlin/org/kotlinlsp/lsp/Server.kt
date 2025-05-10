@@ -9,6 +9,7 @@ import org.kotlinlsp.analysis.AnalysisSessionNotifier
 import org.kotlinlsp.common.getLspVersion
 import org.kotlinlsp.common.info
 import org.kotlinlsp.common.setupLogger
+import org.kotlinlsp.common.setupLoggerClient
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletableFuture.completedFuture
 import java.util.concurrent.Executors
@@ -69,7 +70,7 @@ class KotlinLanguageServer(
     }
 
     override fun initialized(params: InitializedParams) {
-        setupLogger(rootPath)
+        setupLogger()
         info(rootPath)
 
         analysisSession = AnalysisSession(analysisSessionNotifier, rootPath)
@@ -126,6 +127,7 @@ class KotlinLanguageServer(
 
     override fun connect(params: LanguageClient) {
         client = params
+        setupLoggerClient(client)
     }
 
     override fun hover(params: HoverParams): CompletableFuture<Hover?> {

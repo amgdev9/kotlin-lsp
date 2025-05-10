@@ -1,12 +1,16 @@
 package org.kotlinlsp.common
 
 import com.intellij.psi.PsiElement
+import org.eclipse.lsp4j.MessageParams
+import org.eclipse.lsp4j.MessageType
+import org.eclipse.lsp4j.services.LanguageClient
 import org.jetbrains.kotlin.psi.KtFile
 import org.kotlinlsp.analysis.modules.LibraryModule
 import org.kotlinlsp.analysis.modules.SourceModule
 import org.kotlinlsp.analysis.modules.Module
 import java.io.*
 import java.lang.management.ManagementFactory
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.logging.Handler
 import java.util.logging.Level
 import java.util.logging.LogRecord
@@ -29,21 +33,57 @@ private enum class LogLevel(level: Int) {
 private val logLevel = LogLevel.Debug
 private const val profileEnabled = true
 
-private lateinit var logFile: File
+private lateinit var logger: LSPLogger
 private val profileInfo = mutableMapOf<String, Pair<Int, Duration>>()
 
-fun setupLogger(path: String) {
-    val loggerPath = "$path/log.txt"
-    logFile = File(loggerPath)
-    if (logFile.exists()) {
-        logFile.delete()
+private class LSPLogger {
+    var client: LanguageClient? = null
+    val messageQueue = ConcurrentLinkedQueue<MessageParams>()
+
+    fun log(level: LogLevel, message: String) {
+        if (level < logLevel) return
+
+        val type = when (level) {
+            LogLevel.Trace -> MessageType.Log
+            LogLevel.Debug -> MessageType.Log
+            LogLevel.Info -> MessageType.Info
+            LogLevel.Warning -> MessageType.Warning
+            LogLevel.Error -> MessageType.Error
+            LogLevel.Off -> return
+        }
+
+        client?.logMessage(MessageParams(type, message))
+            ?: messageQueue.add(MessageParams(type, message))
     }
+
+    fun redirectSystemErr() {
+        val loggerStream = PrintStream(object : OutputStream() {
+            private val buffer = StringBuilder()
+
+            override fun write(b: Int) {
+                if (b == '\n'.code) {
+                    log(LogLevel.Error, buffer.toString())
+                    buffer.setLength(0)
+                } else {
+                    buffer.append(b.toChar())
+                }
+            }
+        })
+
+        System.setErr(loggerStream)
+    }
+}
+
+fun setupLogger() {
+    logger = LSPLogger()
 
     // This is to log the exceptions to log.txt file (JUL = java.util.log)
     Logger.getLogger("").addHandler(JULRedirector())
 
-    // Also redirect stderr there (for analysis api logs)
-    System.setErr(PrintStream(FileOutputStream(logFile)))
+    logger.redirectSystemErr()
+}
+fun setupLoggerClient(client: LanguageClient) {
+    logger.client = client
 }
 
 fun <T> profile(tag: String, message: String, fn: () -> T): T {
@@ -76,18 +116,18 @@ fun profileJvmStartup() {
 fun logProfileInfo() {
     if (!profileEnabled) return
 
-    log("------------")
-    log("PROFILE INFO")
+    logger.log(LogLevel.Debug,  "------------")
+    logger.log(LogLevel.Debug,  "PROFILE INFO")
     var totalDuration = Duration.ZERO
     profileInfo.entries.sortedByDescending { it.value.second }.forEach {
         val header = "${it.key} (x${it.value.first}):".padEnd(65)
         val formattedDuration = formatDuration(it.value.second)
         totalDuration += it.value.second
-        log("$header $formattedDuration")
+        logger.log(LogLevel.Debug,  "$header $formattedDuration")
     }
-    log("------------")
-    log("TOTAL: ${formatDuration(totalDuration)}")
-    log("------------")
+    logger.log(LogLevel.Debug,  "------------")
+    logger.log(LogLevel.Debug,  "TOTAL: ${formatDuration(totalDuration)}")
+    logger.log(LogLevel.Debug,  "------------")
     profileInfo.clear()
 }
 
@@ -95,37 +135,24 @@ private fun formatDuration(duration: Duration): String {
     return "%.3f ms".format(duration.inWholeMicroseconds.toDouble() / 1000)
 }
 
-private fun log(message: String) {
-    if(logLevel >= LogLevel.Off) return
-    FileWriter(logFile, true).use {
-        it.appendLine(message)
-        it.flush()
-    }
-}
-
 fun debug(message: String) {
-    if(logLevel > LogLevel.Debug) return
-    log("[DEBUG]: $message")
+    logger.log(LogLevel.Debug, "[DEBUG]: $message")
 }
 
 fun info(message: String) {
-    if(logLevel > LogLevel.Info) return
-    log("[INFO]: $message")
+    logger.log(LogLevel.Info, "[INFO]: $message")
 }
 
 fun error(message: String) {
-    if(logLevel > LogLevel.Error) return
-    log("[ERROR]: $message")
+    logger.log(LogLevel.Error, "[ERROR]: $message")
 }
 
 fun trace(message: String) {
-    if(logLevel > LogLevel.Trace) return
-    log("[TRACE]: $message")
+    logger.log(LogLevel.Trace, "[TRACE]: $message")
 }
 
 fun warn(message: String) {
-    if(logLevel > LogLevel.Warning) return
-    log("[WARN]: $message")
+    logger.log(LogLevel.Warning, "[WARN]: $message")
 }
 
 fun printModule(rootModule: Module, level: Int = 0) {

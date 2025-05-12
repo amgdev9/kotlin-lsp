@@ -2,7 +2,6 @@ package org.kotlinlsp.index.db
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import org.kotlinlsp.common.info
 import org.kotlinlsp.index.db.adapters.put
 
 @Serializable
@@ -24,6 +23,7 @@ sealed class Declaration() {
         val returnType: String,
         val parentFqName: String,
         val receiverFqName: String,
+        val static: Boolean,
     ) : Declaration() {
         @Serializable
         data class Parameter(
@@ -73,6 +73,7 @@ sealed class Declaration() {
         override val endOffset: Int,
         val type: String,
         val parentFqName: String,
+        val static: Boolean,
     ) : Declaration()
 }
 

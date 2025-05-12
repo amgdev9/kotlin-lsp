@@ -42,7 +42,15 @@ fun autoCompletionDotExpression(ktFile: KtFile, offset: Int, index: Index, compl
     }
     val importInsertionPosition = StringUtil.offsetToLineColumn(ktFile.text, importInsertionOffset).let { Position(it.line, it.column) }
 
-    val completions = index.getCompletions(prefix, "", receiverType) // TODO: ThisRef
+    val completions = index.getCompletions(prefix) // TODO: ThisRef
+        .filter {
+            when (it) {
+                is Declaration.Class -> false
+                is Declaration.Function -> it.receiverFqName == receiverType
+                is Declaration.Field -> it.parentFqName == receiverType
+                is Declaration.EnumEntry -> false
+            }
+        }
         .mapNotNull { decl ->
             val additionalEdits = mutableListOf<TextEdit>()
 

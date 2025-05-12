@@ -6,6 +6,7 @@ import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.isAbstract
+import org.jetbrains.kotlin.psi.psiUtil.isObjectLiteral
 import org.kotlinlsp.common.read
 import org.kotlinlsp.common.warn
 import org.kotlinlsp.index.db.*
@@ -74,9 +75,13 @@ private fun KaSession.analyzeDeclaration(path: String, dcl: KtDeclaration): Decl
 
     return when (dcl) {
         is KtNamedFunction -> {
-            val parentFqName = if (dcl.parent is KtClassBody) {
-                (dcl.parent.parent as? KtClassOrObject)?.fqName?.asString() ?: ""
-            } else ""
+            // Local functions are not indexed, they are handled using the analysis API
+            if (dcl.isLocal) return null
+
+            val container = if (dcl.parent is KtClassBody) {
+                dcl.parentOfType<KtClassOrObject>()
+            } else null
+            val parentFqName = container?.classSymbol?.defaultType?.toString() ?: ""
 
             Declaration.Function(
                 name,
@@ -92,7 +97,8 @@ private fun KaSession.analyzeDeclaration(path: String, dcl: KtDeclaration): Decl
                 },
                 dcl.returnType.toString(),
                 parentFqName,
-                dcl.receiverTypeReference?.type?.toString() ?: ""
+                dcl.receiverTypeReference?.type?.toString() ?: "",
+                container == null || container is KtObjectDeclaration
             )
         }
 
@@ -142,20 +148,22 @@ private fun KaSession.analyzeDeclaration(path: String, dcl: KtDeclaration): Decl
                 startOffset,
                 endOffset,
                 dcl.returnType.toString(),
-                clazz.fqName?.asString() ?: ""
+                clazz.fqName?.asString() ?: "",
+                false,
             )
         }
 
         is KtProperty -> {
             if (dcl.isLocal) return null
-            val clazz = dcl.parentOfType<KtClass>() ?: return Declaration.Field(
+            val clazz = dcl.parentOfType<KtClassOrObject>() ?: return Declaration.Field(
                 name,
                 dcl.fqName?.asString() ?: "",
                 path,
                 startOffset,
                 endOffset,
                 dcl.returnType.toString(),
-                ""
+                "",
+                true,
             )
 
             Declaration.Field(
@@ -165,7 +173,8 @@ private fun KaSession.analyzeDeclaration(path: String, dcl: KtDeclaration): Decl
                 startOffset,
                 endOffset,
                 dcl.returnType.toString(),
-                clazz.fqName?.asString() ?: ""
+                clazz.fqName?.asString() ?: "",
+                clazz is KtObjectDeclaration
             )
         }
 

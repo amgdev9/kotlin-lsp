@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  test:
+  release:
     runs-on: ubuntu-latest
 
     steps:
@@ -28,7 +28,7 @@ jobs:
       - name: Create release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.ref }}
+          tag: ${{ github.ref_name }}
         run: |
           gh release create "$tag" \
             --repo="$GITHUB_REPOSITORY" \
@@ -37,7 +37,7 @@ jobs:
       - name: Upload distribution
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.ref }}
+          tag: ${{ github.ref_name }}
         run: |
           gh release upload "$tag" \
             --repo="$GITHUB_REPOSITORY" \

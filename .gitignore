@@ -3,6 +3,8 @@
 .idea
 .kotlin
 build
+.direnv
+.envrc
 
 # LSP
 lsp-dist

@@ -1,4 +1,4 @@
-name: Build 
+name: Build
 
 on:
   push:
@@ -16,8 +16,43 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '21'
+          distribution: "temurin"
+          java-version: "21"
 
       - name: Run tests
         run: ./gradlew test
+
+  regenerate-deps:
+    permissions:
+      contents: write
+      pull-requests: write
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+
+      - name: Update deps.json file for nix
+        run: |
+          cp $(nix build --no-link --print-out-paths .#kotlin-lsp.mitmCache.updateScript) result && chmod +x result
+          sed -i 's/^if \[ -n "\$useBwrap" \]; then$/if false; then/' result
+          ./result
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # v7.0.8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "build(nix): update deps.json"
+          branch: update-deps-json
+          delete-branch: true
+          title: "Update deps.json"
+          body: |
+            This PR updates the deps.json file with the latest dependencies.
+
+            *Automated changes by GitHub Actions*
+          add-paths: |
+            nix/deps.json

@@ -5,6 +5,7 @@
 build
 .direnv
 .envrc
+/result
 
 # LSP
 lsp-dist

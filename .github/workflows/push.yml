@@ -36,6 +36,13 @@ jobs:
       - name: Install Nix
         uses: cachix/install-nix-action@v31
 
+      - name: Restore and save Nix Store
+        uses: nix-community/cache-nix-action@v6.1.3
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix', '**/flake.lock') }}
+          gc-max-store-size-linux: 1G
+          purge: true
+
       - name: Update deps.json file for nix
         run: |
           cp $(nix build --no-link --print-out-paths .#kotlin-lsp.mitmCache.updateScript) result && chmod +x result

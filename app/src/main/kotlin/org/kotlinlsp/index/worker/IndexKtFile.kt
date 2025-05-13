@@ -4,8 +4,12 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.util.parentOfType
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.analyze
+import org.jetbrains.kotlin.name.CallableId
+import org.jetbrains.kotlin.name.ClassId
+import org.jetbrains.kotlin.name.StandardClassIds
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.isAbstract
+import org.jetbrains.kotlin.psi.psiUtil.isExtensionDeclaration
 import org.jetbrains.kotlin.psi.psiUtil.isObjectLiteral
 import org.kotlinlsp.common.read
 import org.kotlinlsp.common.warn
@@ -110,7 +114,7 @@ private fun KaSession.analyzeDeclaration(path: String, dcl: KtDeclaration): Decl
                     path,
                     startOffset,
                     endOffset,
-                    dcl.parentOfType<KtClass>()?.fqName?.asString() ?: ""
+                    dcl.parentOfType<KtClass>()?.getClassId()?.asString() ?: ""
                 )
             }
 
@@ -129,7 +133,7 @@ private fun KaSession.analyzeDeclaration(path: String, dcl: KtDeclaration): Decl
             Declaration.Class(
                 name,
                 type,
-                dcl.fqName?.asString() ?: "",
+                dcl.getClassId()?.asString() ?: "",
                 path,
                 startOffset,
                 endOffset
@@ -140,40 +144,51 @@ private fun KaSession.analyzeDeclaration(path: String, dcl: KtDeclaration): Decl
             if (!dcl.hasValOrVar()) return null
             val constructor = dcl.parentOfType<KtPrimaryConstructor>() ?: return null
             val clazz = constructor.parentOfType<KtClass>() ?: return null
+            val classId = clazz.getClassId() ?: return null
+            val callableId = CallableId(classId, dcl.nameAsSafeName)
 
             Declaration.Field(
                 name,
-                dcl.fqName?.asString() ?: "",
+                callableId.toString(),
                 path,
                 startOffset,
                 endOffset,
                 dcl.returnType.toString(),
-                clazz.fqName?.asString() ?: "",
+                clazz.getClassId()?.asString() ?: "",
+                "",
                 false,
             )
         }
 
         is KtProperty -> {
             if (dcl.isLocal) return null
+
+            val receiver = if (dcl.isExtensionDeclaration()) dcl.receiverTypeReference?.type?.toString() ?: "" else ""
+
             val clazz = dcl.parentOfType<KtClassOrObject>() ?: return Declaration.Field(
                 name,
-                dcl.fqName?.asString() ?: "",
+                CallableId(dcl.containingKtFile.packageFqName, dcl.nameAsSafeName).toString(),
                 path,
                 startOffset,
                 endOffset,
                 dcl.returnType.toString(),
                 "",
+                receiver,
                 true,
             )
 
+            val classId = clazz.getClassId() ?: return null
+            val callableId = CallableId(classId, dcl.nameAsSafeName)
+
             Declaration.Field(
                 name,
-                dcl.fqName?.asString() ?: "",
+                callableId.toString(),
                 path,
                 startOffset,
                 endOffset,
                 dcl.returnType.toString(),
-                clazz.fqName?.asString() ?: "",
+                clazz.getClassId()?.asString() ?: "",
+                receiver,
                 clazz is KtObjectDeclaration
             )
         }

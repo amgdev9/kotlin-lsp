@@ -73,6 +73,7 @@ sealed class Declaration() {
         override val endOffset: Int,
         val type: String,
         val parentFqName: String,
+        val receiverFqName: String,
         val static: Boolean,
     ) : Declaration()
 }

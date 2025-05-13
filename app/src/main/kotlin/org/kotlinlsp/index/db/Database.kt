@@ -9,7 +9,7 @@ import org.kotlinlsp.index.db.adapters.put
 import java.io.File
 import kotlin.io.path.absolutePathString
 
-const val CURRENT_SCHEMA_VERSION = 4    // Increment on schema changes
+const val CURRENT_SCHEMA_VERSION = 5    // Increment on schema changes
 const val VERSION_KEY = "__version"
 
 class Database(rootFolder: String) {

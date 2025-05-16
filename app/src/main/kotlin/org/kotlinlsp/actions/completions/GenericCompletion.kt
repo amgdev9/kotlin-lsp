@@ -85,7 +85,15 @@ fun autoCompletionGeneric(ktFile: KtFile, offset: Int, index: Index, completingE
     }
     val importInsertionPosition = StringUtil.offsetToLineColumn(ktFile.text, importInsertionOffset).let { Position(it.line, it.column) }
 
-    val completions = index.getCompletions(prefix, "", "") // TODO: ThisRef
+    val completions = index.getCompletions(prefix) // TODO: ThisRef
+        .filter {
+            when (it) {
+                is Declaration.Class -> true
+                is Declaration.Field -> it.static
+                is Declaration.Function -> it.static
+                is Declaration.EnumEntry -> true
+            }
+        }
         .mapNotNull { decl ->
             val additionalEdits = mutableListOf<TextEdit>()
 

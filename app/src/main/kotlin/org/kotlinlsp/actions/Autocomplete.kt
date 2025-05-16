@@ -13,6 +13,7 @@ import org.jetbrains.kotlin.psi.KtNameReferenceExpression
 import org.jetbrains.kotlin.psi.KtValueArgumentList
 import org.kotlinlsp.actions.completions.autoCompletionDotExpression
 import org.kotlinlsp.actions.completions.autoCompletionGeneric
+import org.kotlinlsp.common.info
 import org.kotlinlsp.index.Index
 import org.kotlinlsp.index.db.Declaration
 
@@ -25,12 +26,19 @@ fun autocompleteAction(ktFile: KtFile, offset: Int, index: Index): List<Completi
     val prefix = leaf.text.substring(0, offset - leaf.textRange.startOffset)
     val completingElement = leaf.parentOfType<KtElement>() ?: ktFile
 
+    info("Completing at $offset with prefix '$prefix', element type: ${completingElement.javaClass.simpleName}")
+
     if (completingElement is KtNameReferenceExpression) {
         if (completingElement.parent is KtDotQualifiedExpression) {
             return completeDotQualified(ktFile, offset, index, completingElement.parent as KtDotQualifiedExpression, prefix)
         } else {
             return autoCompletionGeneric(ktFile, offset, index, completingElement, prefix)
         }
+    }
+
+    if (completingElement is KtDotQualifiedExpression) {
+        assert(prefix == ".")
+        return completeDotQualified(ktFile, offset, index, completingElement, "")
     }
 
     if (completingElement is KtValueArgumentList) {

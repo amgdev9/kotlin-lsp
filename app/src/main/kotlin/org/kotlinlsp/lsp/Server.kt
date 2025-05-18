@@ -62,6 +62,7 @@ class KotlinLanguageServer(
             completionProvider = CompletionOptions(false, listOf("."))
         }
         val serverInfo = ServerInfo().apply {
+            name = "kotlin-lsp"
             version = getLspVersion()
         }
 

@@ -43,14 +43,15 @@ import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.psi.KtFile
 import org.kotlinlsp.actions.autocompleteAction
 import org.kotlinlsp.actions.goToDefinitionAction
+import org.kotlinlsp.actions.goToImplementationAction
 import org.kotlinlsp.actions.hoverAction
+import org.kotlinlsp.analysis.modules.LibraryModule
+import org.kotlinlsp.analysis.modules.Module
+import org.kotlinlsp.analysis.modules.SourceModule
 import org.kotlinlsp.analysis.registration.Registrar
 import org.kotlinlsp.analysis.registration.lspPlatform
 import org.kotlinlsp.analysis.registration.lspPlatformPostInit
 import org.kotlinlsp.analysis.services.*
-import org.kotlinlsp.analysis.modules.LibraryModule
-import org.kotlinlsp.analysis.modules.Module
-import org.kotlinlsp.analysis.modules.SourceModule
 import org.kotlinlsp.buildsystem.BuildSystemResolver
 import org.kotlinlsp.common.*
 import org.kotlinlsp.index.Index
@@ -333,6 +334,11 @@ class AnalysisSession(private val notifier: AnalysisSessionNotifier, rootPath: S
     fun goToDefinition(path: String, position: Position): Location? {
         val ktFile = index.getOpenedKtFile(path)!!
         return project.read { goToDefinitionAction(ktFile, position) }
+    }
+
+    fun goToImplementation(path: String, position: Position): List<Location>? {
+        val ktFile = index.getOpenedKtFile(path)!!
+        return project.read { goToImplementationAction(ktFile, position) }
     }
 
     fun autocomplete(path: String, position: Position): List<CompletionItem> {

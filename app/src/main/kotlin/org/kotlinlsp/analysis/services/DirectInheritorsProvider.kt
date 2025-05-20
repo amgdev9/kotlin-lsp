@@ -39,16 +39,26 @@ class DirectInheritorsProvider: KotlinDirectInheritorsProvider {
         this.modules = modules
     }
 
-    @OptIn(SymbolInternals::class)
     override fun getDirectKotlinInheritors(
         ktClass: KtClass,
         scope: GlobalSearchScope,
         includeLocalInheritors: Boolean
     ): Iterable<KtClassOrObject> = profile("getDirectKotlinInheritors", "$ktClass") {
-        computeIndex()
-
         val classId = ktClass.getClassId() ?: return@profile emptyList()
         val baseModule = KotlinProjectStructureProvider.getModule(project, ktClass, useSiteModule = null)
+
+        getDirectKotlinInheritorsByClassId(classId, baseModule, scope, includeLocalInheritors)
+    }
+
+    @OptIn(SymbolInternals::class)
+    fun getDirectKotlinInheritorsByClassId(
+        classId: ClassId,
+        baseModule: KaModule,
+        scope: GlobalSearchScope,
+        includeLocalInheritors: Boolean
+    ): Iterable<KtClassOrObject> = profile("getDirectKotlinInheritorsByClassId", "$classId") {
+        computeIndex()
+
         val baseFirClass = classId.toFirSymbol(baseModule)?.fir as? FirClass ?: return@profile emptyList()
 
         val baseClassNames = mutableSetOf(classId.shortClassName)

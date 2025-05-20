@@ -59,6 +59,7 @@ class KotlinLanguageServer(
             textDocumentSync = Either.forLeft(TextDocumentSyncKind.Incremental)
             hoverProvider = Either.forLeft(true)
             definitionProvider = Either.forLeft(true)
+            implementationProvider = Either.forLeft(true)
             completionProvider = CompletionOptions(false, listOf("."))
         }
         val serverInfo = ServerInfo().apply {
@@ -154,5 +155,11 @@ class KotlinLanguageServer(
         val location =
             analysisSession.goToDefinition(params.textDocument.uri, params.position) ?: return completedFuture(null)
         return completedFuture(Either.forLeft(mutableListOf(location)))
+    }
+
+    override fun implementation(params: ImplementationParams): CompletableFuture<Either<List<Location>, List<LocationLink>>?> {
+        val locations =
+            analysisSession.goToImplementation(params.textDocument.uri, params.position) ?: return completedFuture(null)
+        return completedFuture(Either.forLeft(locations))
     }
 }

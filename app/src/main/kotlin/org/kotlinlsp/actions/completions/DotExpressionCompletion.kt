@@ -27,6 +27,7 @@ import org.jetbrains.kotlin.psi.KtParameter
 import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.kotlin.types.Variance
 import org.kotlinlsp.actions.completionKind
+import org.kotlinlsp.common.info
 import org.kotlinlsp.index.Index
 import org.kotlinlsp.index.db.Declaration
 import org.kotlinlsp.index.queries.getCompletions
@@ -42,7 +43,17 @@ fun autoCompletionDotExpression(ktFile: KtFile, offset: Int, index: Index, compl
     }
     val importInsertionPosition = StringUtil.offsetToLineColumn(ktFile.text, importInsertionOffset).let { Position(it.line, it.column) }
 
-    val completions = index.getCompletions(prefix, "", receiverType) // TODO: ThisRef
+    info("Completing dot expression at $offset with prefix '$prefix' and receiver type '$receiverType'")
+
+    val completions = index.getCompletions(prefix) // TODO: ThisRef
+        .filter {
+            when (it) {
+                is Declaration.Class -> false
+                is Declaration.Function -> it.receiverFqName == receiverType
+                is Declaration.Field -> it.parentFqName == receiverType
+                is Declaration.EnumEntry -> false
+            }
+        }
         .mapNotNull { decl ->
             val additionalEdits = mutableListOf<TextEdit>()
 

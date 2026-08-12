@@ -7,6 +7,10 @@ This is an implementation of the [Language Server Protocol](https://microsoft.gi
 
 ## Current status
 
+> ⚠️ **Unmaintained**
+>
+> This repository is no longer actively maintained. Feel free to fork it and continue development or adapt it for your own needs.
+
 Right now, this language server is at its infancy and thus not ready to use for production environments (yet). As of now, this language server is being prepared to analyse its own codebase, with upcoming support for other projects. Here are the most important steps to make in order to improve its usability:
 
 - Integration with build systems: right now we have 2 integrations available:
